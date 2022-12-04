@@ -1,5 +1,6 @@
 import chess
-from state import State
+import numpy as np
+from model import LiteModel
 from tensorflow import keras
 import time
 
@@ -13,63 +14,86 @@ class Computer:
     MAXVAL = 1000
     k1 = 0.1
     k2 = 10
-    MAX_DEPTH = 4
+    MAX_DEPTH = 1
 
     def __init__(self):
-        self.model = keras.models.load_model('model/model.h5')
+        # load model
+        self.model = keras.models.load_model('model/cp1.h5')
+        self.model = LiteModel.from_keras_model(self.model)
 
-    def valuator(self, s):
-        b = s.board
+    # for encoding
+    def splitter(self, inputStr, black):
+        inputStr = format(inputStr, "064b")
+        tmp = [inputStr[i:i + 8] for i in range(0, len(inputStr), 8)]
+
+        for i in range(0, len(tmp)):
+            tmp2 = list(tmp[i])
+            tmp2 = [int(x) * black for x in tmp2]
+            tmp[i] = tmp2
+
+        return np.asarray(tmp).reshape((64))
+
+    # encoding here
+    def fen2bit(self, b):
+        return np.concatenate((self.splitter(int(b.pieces(chess.PAWN, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.ROOK, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.KNIGHT, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.BISHOP, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.QUEEN, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.KING, chess.WHITE)), 1),
+                               self.splitter(int(b.pieces(chess.PAWN, chess.BLACK)), -1),
+                               self.splitter(int(b.pieces(chess.ROOK, chess.BLACK)), -1),
+                               self.splitter(int(b.pieces(chess.KNIGHT, chess.BLACK)), -1),
+                               self.splitter(int(b.pieces(chess.BISHOP, chess.BLACK)), -1),
+                               self.splitter(int(b.pieces(chess.QUEEN, chess.BLACK)), -1),
+                               self.splitter(int(b.pieces(chess.KING, chess.BLACK)), -1)), axis=0)
+
+    def valuator(self, brd): # brd : chess board
 
         # game over state
-        if b.is_game_over():
-            if b.result() == '1-0':
+        if brd.is_game_over():
+            if brd.result() == '1-0':
                 return self.MAXVAL
-            if b.result() == '0-1':
+            if brd.result() == '0-1':
                 return -self.MAXVAL
             else:
                 return 0
 
         # heuristic 1: value per type
-        h1 = 0.0
-
-        pm = b.piece_map()
-        for x in pm:
-            tval = self.values[pm[x].piece_type]
-            if pm[x].color == chess.WHITE:
-                h1 += tval
-            else:
-                h1 -= tval
-
-        # heuristic 2: total legal moves
-        h2 = 0.0
-        temp_turn = b.turn
-        b.turn = chess.WHITE
-        h2 += b.legal_moves.count()
-        b.turn = chess.BLACK
-        h2 -= b.legal_moves.count()
-        b.turn = temp_turn
+        # h1 = 0.0
+        #
+        # pm = b.piece_map()
+        # for x in pm:
+        #     tval = self.values[pm[x].piece_type]
+        #     if pm[x].color == chess.WHITE:
+        #         h1 += tval
+        #     else:
+        #         h1 -= tval
+        #
+        # # heuristic 2: total legal moves
+        # h2 = 0.0
+        # temp_turn = b.turn
+        # b.turn = chess.WHITE
+        # h2 += b.legal_moves.count()
+        # b.turn = chess.BLACK
+        # h2 -= b.legal_moves.count()
+        # b.turn = temp_turn
 
         # heuristic 3: model deep learning
-        # h3 = 0.0
-        # brd = s.serialize()[None] #encoding and predict
-        # v_dl = float(self.model(brd))
-        # if b.turn == chess.WHITE:
-        #     h3 += v_dl*v_dl*v_dl
-        # else:
-        #     h3 -= v_dl*v_dl*v_dl
+        bitmap = self.fen2bit(brd) #encoding and predict
+        val = self.model.predict_single(bitmap)
 
         # valuator here
-        val = h1 + self.k1*h2# + self.k2*h3
+        # val = h1 + self.k1*h2 + self.k2*h3
 
         return val
 
 
-    def anpha_beta_prunning(self, s, depth, a, b, flaq=False):
-        if depth >= self.MAX_DEPTH or s.board.is_game_over():
-            return self.valuator(s)
+    def anpha_beta_prunning(self, brd, depth, a, b, flaq=False):
+        if depth >= self.MAX_DEPTH or brd.is_game_over():
+            return self.valuator(brd)
         # white is maximizing player
-        turn = s.board.turn
+        turn = brd.turn
         if turn == chess.WHITE:
             ret = -self.MAXVAL
         else:
@@ -77,10 +101,10 @@ class Computer:
         if flaq:
             bret = []
 
-        for move in s.board.legal_moves:
-            s.board.push(move)
-            tval = self.anpha_beta_prunning(s, depth + 1, a, b)
-            s.board.pop()
+        for move in brd.legal_moves:
+            brd.push(move)
+            tval = self.anpha_beta_prunning(brd, depth + 1, a, b)
+            brd.pop()
             if flaq:
                 bret.append((tval, move))
             if turn == chess.WHITE:
@@ -98,23 +122,23 @@ class Computer:
         else:
             return ret
 
-    def explore_leaves(self, s):
+    def explore_leaves(self, brd):
         ret = []
         start = time.time()
-        bval = self.valuator(s)
-        cval, ret = self.anpha_beta_prunning(s, 0, a=-self.MAXVAL, b=self.MAXVAL, flaq=True)
+        bval = self.valuator(brd)
+        cval, ret = self.anpha_beta_prunning(brd, 0, a=-self.MAXVAL, b=self.MAXVAL, flaq=True)
         eta = time.time() - start
         print("%.2f -> %.2f: explored in %.3f seconds" % (bval, cval, eta))
         return ret
 
-    def getCompMove(self, s):
-        move = sorted(self.explore_leaves(s), key=lambda x: x[0], reverse=s.board.turn)
+    def getCompMove(self, brd):
+        move = sorted(self.explore_leaves(brd), key=lambda x: x[0], reverse=brd.turn)
         if len(move) == 0:
             return
         print("top 3:")
         for i, m in enumerate(move[0:3]):
             print("  ", m)
-        print(s.board.turn, "moving", move[0][1])
+        print(brd.turn, "moving", move[0][1])
         return move[0][1]
 
 

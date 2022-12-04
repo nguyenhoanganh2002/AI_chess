@@ -5,8 +5,6 @@ import pygame
 import pygame as p
 import ChessEngine
 import  chess
-import random
-from state import State
 from computer import Computer
 
 WIDTH = HEIGHT = 512
@@ -26,8 +24,8 @@ def loadImages():
 
 comp = Computer()
 def getMove(fen):
-    s = State(fen)
-    move = comp.getCompMove(s)
+    brd = chess.Board(fen)
+    move = comp.getCompMove(brd)
     return str(move)
 
 def main():
@@ -39,10 +37,6 @@ def main():
     print(gs.getFen())
     #print(len(gs.castleRightsLog))
     validMoves = gs.getValidMoves()
-    #print(len(gs.castleRightsLog))
-    '''print(len(validMoves))
-    for move in validMoves:
-        print(move.startRow, move.startCol, move.endRow, move.endCol)'''
     moveMade = False # flag variable for when a move is made
 
     loadImages() # Only do this once, because it's heavy 
