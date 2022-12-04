@@ -13,8 +13,8 @@ class Computer:
               chess.KING: 0}
     MAXVAL = 1000
     k1 = 0.1
-    k2 = 10
-    MAX_DEPTH = 1
+    k2 = 1
+    MAX_DEPTH = 3
 
     def __init__(self):
         # load model
@@ -60,31 +60,31 @@ class Computer:
                 return 0
 
         # heuristic 1: value per type
-        # h1 = 0.0
-        #
-        # pm = b.piece_map()
-        # for x in pm:
-        #     tval = self.values[pm[x].piece_type]
-        #     if pm[x].color == chess.WHITE:
-        #         h1 += tval
-        #     else:
-        #         h1 -= tval
-        #
-        # # heuristic 2: total legal moves
-        # h2 = 0.0
-        # temp_turn = b.turn
-        # b.turn = chess.WHITE
-        # h2 += b.legal_moves.count()
-        # b.turn = chess.BLACK
-        # h2 -= b.legal_moves.count()
-        # b.turn = temp_turn
+        h1 = 0.0
+
+        pm = brd.piece_map()
+        for x in pm:
+            tval = self.values[pm[x].piece_type]
+            if pm[x].color == chess.WHITE:
+                h1 += tval
+            else:
+                h1 -= tval
+
+        # heuristic 2: total legal moves
+        h2 = 0.0
+        temp_turn = brd.turn
+        brd.turn = chess.WHITE
+        h2 += brd.legal_moves.count()
+        brd.turn = chess.BLACK
+        h2 -= brd.legal_moves.count()
+        brd.turn = temp_turn
 
         # heuristic 3: model deep learning
         bitmap = self.fen2bit(brd) #encoding and predict
-        val = self.model.predict_single(bitmap)
+        h3 = self.model.predict_single(bitmap)
 
         # valuator here
-        # val = h1 + self.k1*h2 + self.k2*h3
+        val = h1 + self.k1*h2 + self.k2*h3
 
         return val
 
