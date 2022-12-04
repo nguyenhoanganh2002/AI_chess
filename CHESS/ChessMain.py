@@ -22,8 +22,9 @@ def loadImages():
     for piece in pieces:
         IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))   
 
-comp = Computer()
-def getMove(fen):
+comp1 = Computer()
+comp2 = Computer(usemodel=True)
+def getMove(fen, comp):
     brd = chess.Board(fen)
     move = comp.getCompMove(brd)
     return str(move)
@@ -39,7 +40,41 @@ def main():
     validMoves = gs.getValidMoves()
     moveMade = False # flag variable for when a move is made
 
-    loadImages() # Only do this once, because it's heavy 
+    loadImages() # Only do this once, because it's heavy
+
+    # --------------------------------------------------------------------------
+    while True:
+        ranksToRows1 = {
+            "1": 7, "2": 6, "3": 5, "4": 4,
+            "5": 3, "6": 2, "7": 1, "8": 0
+        }
+
+        filesToCols1 = {
+            "a": 0, "b": 1, "c": 2, "d": 3,
+            "e": 4, "f": 5, "g": 6, "h": 7
+        }
+        comp1Move = getMove(gs.getFen(), comp1)
+
+        startSq1 = (ranksToRows1[comp1Move[1]], filesToCols1[comp1Move[0]])
+        endSq1 = (int(ranksToRows1[comp1Move[3]]), int(filesToCols1[comp1Move[2]]))
+        gs.makeMove(ChessEngine.Move(startSq1, endSq1, gs.board))
+
+        drawGameState(screen, gs)
+        clock.tick(MAX_FPS)
+        p.display.flip()
+
+        #----------------------
+
+        comp2Move = getMove(gs.getFen(), comp2)
+
+        startSq2 = (ranksToRows1[comp2Move[1]], filesToCols1[comp2Move[0]])
+        endSq2 = (int(ranksToRows1[comp2Move[3]]), int(filesToCols1[comp2Move[2]]))
+        gs.makeMove(ChessEngine.Move(startSq2, endSq2, gs.board))
+
+        drawGameState(screen, gs)
+        clock.tick(MAX_FPS)
+        p.display.flip()
+    # --------------------------------------------------------------------------
 
     running = True
     sqSelected = () # no square is selected, keep track of the last click of the user (tuple: (row, col))

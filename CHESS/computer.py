@@ -16,10 +16,12 @@ class Computer:
     k2 = 1
     MAX_DEPTH = 3
 
-    def __init__(self):
+    def __init__(self, usemodel=False):
+        self.usemodel = usemodel
         # load model
-        self.model = keras.models.load_model('model/cp1.h5')
-        self.model = LiteModel.from_keras_model(self.model)
+        if usemodel:
+            self.model = keras.models.load_model('model/cp6.h5')
+            self.model = LiteModel.from_keras_model(self.model)
 
     # for encoding
     def splitter(self, inputStr, black):
@@ -80,11 +82,13 @@ class Computer:
         brd.turn = temp_turn
 
         # heuristic 3: model deep learning
-        bitmap = self.fen2bit(brd) #encoding and predict
-        h3 = self.model.predict_single(bitmap)
-
-        # valuator here
-        val = h1 + self.k1*h2 + self.k2*h3
+        if self.usemodel:
+            bitmap = self.fen2bit(brd)  # encoding and predict
+            h3 = self.model.predict_single(bitmap)
+            # valuator here
+            val = h1 + self.k1 * h2 + self.k2 * h3
+        else:
+            val = h1 + self.k1 * h2
 
         return val
 
