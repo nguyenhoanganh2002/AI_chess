@@ -14,41 +14,84 @@ class Computer:
     MAXVAL = 1000
     k1 = 0.1
     k2 = 1
-    MAX_DEPTH = 3
+    MAX_DEPTH = 4
 
     def __init__(self, usemodel=False):
         self.usemodel = usemodel
         # load model
         if usemodel:
-            self.model = keras.models.load_model('model/cp6.h5')
+            self.model = keras.models.load_model('model/cp04.h5')
             self.model = LiteModel.from_keras_model(self.model)
 
     # for encoding
-    def splitter(self, inputStr, black):
-        inputStr = format(inputStr, "064b")
-        tmp = [inputStr[i:i + 8] for i in range(0, len(inputStr), 8)]
+    def serialize(self, brd):
 
-        for i in range(0, len(tmp)):
-            tmp2 = list(tmp[i])
-            tmp2 = [int(x) * black for x in tmp2]
-            tmp[i] = tmp2
+        pawnBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'P':
+                pawnBoard[i] = 1
+            if pp.symbol() == 'p':
+                pawnBoard[i] = -1
 
-        return np.asarray(tmp).reshape((64))
+        knightBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'N':
+                knightBoard[i] = 1
+            if pp.symbol() == 'n':
+                knightBoard[i] = -1
 
-    # encoding here
-    def fen2bit(self, b):
-        return np.concatenate((self.splitter(int(b.pieces(chess.PAWN, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.ROOK, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.KNIGHT, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.BISHOP, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.QUEEN, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.KING, chess.WHITE)), 1),
-                               self.splitter(int(b.pieces(chess.PAWN, chess.BLACK)), -1),
-                               self.splitter(int(b.pieces(chess.ROOK, chess.BLACK)), -1),
-                               self.splitter(int(b.pieces(chess.KNIGHT, chess.BLACK)), -1),
-                               self.splitter(int(b.pieces(chess.BISHOP, chess.BLACK)), -1),
-                               self.splitter(int(b.pieces(chess.QUEEN, chess.BLACK)), -1),
-                               self.splitter(int(b.pieces(chess.KING, chess.BLACK)), -1)), axis=0)
+        bishopBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'B':
+                bishopBoard[i] = 1
+            if pp.symbol() == 'b':
+                bishopBoard[i] = -1
+
+        rookBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'R':
+                rookBoard[i] = 1
+            if pp.symbol() == 'r':
+                rookBoard[i] = -1
+
+        queenBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'Q':
+                queenBoard[i] = 1
+            if pp.symbol() == 'q':
+                queenBoard[i] = -1
+
+        kingBoard = np.zeros(64, float)
+        for i in range(64):
+            pp = brd.piece_at(i)
+            if pp is None:
+                continue
+            if pp.symbol() == 'K':
+                kingBoard[i] = 1
+            if pp.symbol() == 'k':
+                kingBoard[i] = -1
+
+        return np.concatenate((pawnBoard,
+                               knightBoard,
+                               bishopBoard,
+                               rookBoard,
+                               queenBoard,
+                               kingBoard))
 
     def valuator(self, brd): # brd : chess board
 
@@ -83,7 +126,7 @@ class Computer:
 
         # heuristic 3: model deep learning
         if self.usemodel:
-            bitmap = self.fen2bit(brd)  # encoding and predict
+            bitmap = self.serialize(brd)  # encoding and predict
             h3 = self.model.predict_single(bitmap)
             # valuator here
             val = h1 + self.k1 * h2 + self.k2 * h3

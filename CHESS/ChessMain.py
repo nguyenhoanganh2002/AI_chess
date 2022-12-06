@@ -43,37 +43,38 @@ def main():
     loadImages() # Only do this once, because it's heavy
 
     # --------------------------------------------------------------------------
-    while True:
-        ranksToRows1 = {
-            "1": 7, "2": 6, "3": 5, "4": 4,
-            "5": 3, "6": 2, "7": 1, "8": 0
-        }
-
-        filesToCols1 = {
-            "a": 0, "b": 1, "c": 2, "d": 3,
-            "e": 4, "f": 5, "g": 6, "h": 7
-        }
-        comp1Move = getMove(gs.getFen(), comp1)
-
-        startSq1 = (ranksToRows1[comp1Move[1]], filesToCols1[comp1Move[0]])
-        endSq1 = (int(ranksToRows1[comp1Move[3]]), int(filesToCols1[comp1Move[2]]))
-        gs.makeMove(ChessEngine.Move(startSq1, endSq1, gs.board))
-
-        drawGameState(screen, gs)
-        clock.tick(MAX_FPS)
-        p.display.flip()
-
-        #----------------------
-
-        comp2Move = getMove(gs.getFen(), comp2)
-
-        startSq2 = (ranksToRows1[comp2Move[1]], filesToCols1[comp2Move[0]])
-        endSq2 = (int(ranksToRows1[comp2Move[3]]), int(filesToCols1[comp2Move[2]]))
-        gs.makeMove(ChessEngine.Move(startSq2, endSq2, gs.board))
-
-        drawGameState(screen, gs)
-        clock.tick(MAX_FPS)
-        p.display.flip()
+    # while True:
+    #     ranksToRows1 = {
+    #         "1": 7, "2": 6, "3": 5, "4": 4,
+    #         "5": 3, "6": 2, "7": 1, "8": 0
+    #     }
+    #
+    #     filesToCols1 = {
+    #         "a": 0, "b": 1, "c": 2, "d": 3,
+    #         "e": 4, "f": 5, "g": 6, "h": 7
+    #     }
+    #     print('\nComp1 thinking ... \n')
+    #     comp1Move = getMove(gs.getFen(), comp1)
+    #
+    #     startSq1 = (ranksToRows1[comp1Move[1]], filesToCols1[comp1Move[0]])
+    #     endSq1 = (int(ranksToRows1[comp1Move[3]]), int(filesToCols1[comp1Move[2]]))
+    #     gs.makeMove(ChessEngine.Move(startSq1, endSq1, gs.board))
+    #
+    #     drawGameState(screen, gs)
+    #     clock.tick(MAX_FPS)
+    #     p.display.flip()
+    #
+    #     #----------------------
+    #     print('\nComp2 thinking ... \n')
+    #     comp2Move = getMove(gs.getFen(), comp2)
+    #
+    #     startSq2 = (ranksToRows1[comp2Move[1]], filesToCols1[comp2Move[0]])
+    #     endSq2 = (int(ranksToRows1[comp2Move[3]]), int(filesToCols1[comp2Move[2]]))
+    #     gs.makeMove(ChessEngine.Move(startSq2, endSq2, gs.board))
+    #
+    #     drawGameState(screen, gs)
+    #     clock.tick(MAX_FPS)
+    #     p.display.flip()
     # --------------------------------------------------------------------------
 
     running = True
@@ -105,21 +106,36 @@ def main():
                             drawGameState(screen, gs)
                             clock.tick(MAX_FPS)
                             p.display.flip()
-                            compMove = getMove(gs.getFen())
-                            ranksToRows1 = {
-                                "1": 7, "2": 6, "3": 5, "4": 4,
-                                "5": 3, "6": 2, "7": 1, "8": 0
-                            }
 
-                            filesToCols1 = {
-                                "a": 0, "b": 1, "c": 2, "d": 3,
-                                "e": 4, "f": 5, "g": 6, "h": 7
-                            }
-                            startSq = (ranksToRows1[compMove[1]], filesToCols1[compMove[0]])
-                            endSq = (int(ranksToRows1[compMove[3]]), int(filesToCols1[compMove[2]]))
+                            # get commputer move
+                            compMove = getMove(gs.getFen(), comp2)
+                            print(compMove)
+                            if compMove[0] == 'O':
+                                if len(compMove) == 3:
+                                    # kingside
+                                    startSq = (0, 4)
+                                    endSq = (0, 6)
+                                else:
+                                    #queenside
+                                    startSq = (0, 4)
+                                    endSq = (0, 2)
+                                tempMove = ChessEngine.Move(startSq, endSq, gs.board, isCastleMove=True)
+                                gs.makeMove(tempMove)
+                            else:
+                                ranksToRows1 = {
+                                    "1": 7, "2": 6, "3": 5, "4": 4,
+                                    "5": 3, "6": 2, "7": 1, "8": 0
+                                }
 
-                            tempMove = ChessEngine.Move(startSq, endSq, gs.board)
-                            gs.makeMove(tempMove)
+                                filesToCols1 = {
+                                    "a": 0, "b": 1, "c": 2, "d": 3,
+                                    "e": 4, "f": 5, "g": 6, "h": 7
+                                }
+                                startSq = (ranksToRows1[compMove[1]], filesToCols1[compMove[0]])
+                                endSq = (int(ranksToRows1[compMove[3]]), int(filesToCols1[compMove[2]]))
+
+                                tempMove = ChessEngine.Move(startSq, endSq, gs.board)
+                                gs.makeMove(tempMove)
 
                             moveMade = True
                             sqSelected = ()
