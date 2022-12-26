@@ -3,7 +3,11 @@ import numpy as np
 from model import LiteModel
 from tensorflow import keras
 import time
+import random
 
+b = chess.Board('kR6/8/8/1R1p4/p2Q2P1/4P3/6q1/1N1K4 b - - 0 56')
+print(len(b.piece_map()))
+print(b)
 class Computer:
     values = {chess.PAWN: 1,
               chess.KNIGHT: 3,
@@ -11,16 +15,17 @@ class Computer:
               chess.ROOK: 5,
               chess.QUEEN: 9,
               chess.KING: 0}
-    MAXVAL = 1000
-    k1 = 0.1
+    MAXVAL = 10000
     k2 = 1
-    MAX_DEPTH = 4
-
-    def __init__(self, usemodel=False):
+    memories = []
+    def __init__(self, MAX_DEPTH=3, k1=0.01, usemodel=False):
+        self.auto_dataset = list(np.load('auto_dataset.npy'))
+        self.k1 = k1
+        self.MAX_DEPTH = MAX_DEPTH
         self.usemodel = usemodel
         # load model
         if usemodel:
-            self.model = keras.models.load_model('model/cp04.h5')
+            self.model = keras.models.load_model('model/cp_all_elo_kangle_3.h5')
             self.model = LiteModel.from_keras_model(self.model)
 
     # for encoding
@@ -179,14 +184,45 @@ class Computer:
         return ret
 
     def getCompMove(self, brd):
+        if brd.is_game_over():
+            np.save('auto_dataset.npy', np.array(self.auto_dataset))
+            print(f'Game over {brd.outcome()}')
+            return
+
         move = sorted(self.explore_leaves(brd), key=lambda x: x[0], reverse=brd.turn)
         if len(move) == 0:
             return
-        print("top 3:")
-        for i, m in enumerate(move[0:3]):
-            print("  ", m)
-        print(brd.turn, "moving", move[0][1])
-        return move[0][1]
+        mark = []
+        for i, m in enumerate(move):
+            for j in range(len(self.memories)):
+                brd.push(move[i][1])
+                fen = brd.fen()
+                index = 0
+                for idx in range(1, len(fen)):
+                    if (fen[idx] == 'b' or fen[idx] == 'w') and fen[idx - 1] == ' ':
+                        index = idx - 1
+                        break
+                if fen[:index] == self.memories[j][0]:
+                    self.memories[j][1] += 1
+                    if self.memories[j][1] > 2:
+                        mark.append(i)
+                    brd.pop()
+                else:
+                    brd.pop()
+        print(f'mark {mark}')
+        for i, m in enumerate(move):
+            if i not in mark:
+                brd.push(move[i][1])
+                fen = brd.fen()
+                index = 0
+                for idx in range(1, len(fen)):
+                    if (fen[idx] == 'b' or fen[idx] == 'w') and fen[idx - 1] == ' ':
+                        index = idx - 1
+                        break
+                self.memories.append([fen[:index], 1])
+                self.auto_dataset.append(fen)
+                print(fen)
+                return move[i][1]
 
 
 

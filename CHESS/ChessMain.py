@@ -6,11 +6,12 @@ import pygame as p
 import ChessEngine
 import  chess
 from computer import Computer
+from AI import AI
 
 WIDTH = HEIGHT = 512
 DIMENSION = 8
 SQ_SIZE = HEIGHT // DIMENSION
-MAX_FPS = 15
+MAX_FPS = 30
 IMAGES = {}
 
 '''
@@ -22,8 +23,8 @@ def loadImages():
     for piece in pieces:
         IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))   
 
-comp1 = Computer()
-comp2 = Computer(usemodel=True)
+# comp1 = Computer(MAX_DEPTH=4, k1=0.01)
+comp2 = Computer(MAX_DEPTH=3, k1=0.01, usemodel=True)
 def getMove(fen, comp):
     brd = chess.Board(fen)
     move = comp.getCompMove(brd)
@@ -43,38 +44,62 @@ def main():
     loadImages() # Only do this once, because it's heavy
 
     # --------------------------------------------------------------------------
-    # while True:
-    #     ranksToRows1 = {
-    #         "1": 7, "2": 6, "3": 5, "4": 4,
-    #         "5": 3, "6": 2, "7": 1, "8": 0
-    #     }
-    #
-    #     filesToCols1 = {
-    #         "a": 0, "b": 1, "c": 2, "d": 3,
-    #         "e": 4, "f": 5, "g": 6, "h": 7
-    #     }
-    #     print('\nComp1 thinking ... \n')
-    #     comp1Move = getMove(gs.getFen(), comp1)
-    #
-    #     startSq1 = (ranksToRows1[comp1Move[1]], filesToCols1[comp1Move[0]])
-    #     endSq1 = (int(ranksToRows1[comp1Move[3]]), int(filesToCols1[comp1Move[2]]))
-    #     gs.makeMove(ChessEngine.Move(startSq1, endSq1, gs.board))
-    #
-    #     drawGameState(screen, gs)
-    #     clock.tick(MAX_FPS)
-    #     p.display.flip()
-    #
-    #     #----------------------
-    #     print('\nComp2 thinking ... \n')
-    #     comp2Move = getMove(gs.getFen(), comp2)
-    #
-    #     startSq2 = (ranksToRows1[comp2Move[1]], filesToCols1[comp2Move[0]])
-    #     endSq2 = (int(ranksToRows1[comp2Move[3]]), int(filesToCols1[comp2Move[2]]))
-    #     gs.makeMove(ChessEngine.Move(startSq2, endSq2, gs.board))
-    #
-    #     drawGameState(screen, gs)
-    #     clock.tick(MAX_FPS)
-    #     p.display.flip()
+    while True:
+        ranksToRows1 = {
+            "1": 7, "2": 6, "3": 5, "4": 4,
+            "5": 3, "6": 2, "7": 1, "8": 0
+        }
+
+        filesToCols1 = {
+            "a": 0, "b": 1, "c": 2, "d": 3,
+            "e": 4, "f": 5, "g": 6, "h": 7
+        }
+        print('\nComp1 thinking ... \n')
+        ai = AI(chess.Board(gs.getFen()), 3)
+        comp1Move = str(ai.calculate_ab(3))
+        if comp1Move[0] == 'O':
+            if len(comp1Move) == 3:
+                # kingside
+                startSq = (0, 4)
+                endSq = (0, 6)
+            else:
+                # queenside
+                startSq = (0, 4)
+                endSq = (0, 2)
+            tempMove = ChessEngine.Move(startSq, endSq, gs.board, isCastleMove=True)
+            gs.makeMove(tempMove)
+        else:
+            startSq1 = (ranksToRows1[comp1Move[1]], filesToCols1[comp1Move[0]])
+            endSq1 = (int(ranksToRows1[comp1Move[3]]), int(filesToCols1[comp1Move[2]]))
+            gs.makeMove(ChessEngine.Move(startSq1, endSq1, gs.board))
+
+        drawGameState(screen, gs)
+        clock.tick(MAX_FPS)
+        p.display.flip()
+
+        #----------------------
+        print('\nComp2 thinking ... \n')
+        comp2Move = getMove(gs.getFen(), comp2)
+        print(comp2Move)
+        if comp1Move[0] == 'O':
+            if len(comp1Move) == 3:
+                # kingside
+                startSq = (0, 4)
+                endSq = (0, 6)
+            else:
+                # queenside
+                startSq = (0, 4)
+                endSq = (0, 2)
+            tempMove = ChessEngine.Move(startSq, endSq, gs.board, isCastleMove=True)
+            gs.makeMove(tempMove)
+        else:
+            startSq2 = (ranksToRows1[comp2Move[1]], filesToCols1[comp2Move[0]])
+            endSq2 = (int(ranksToRows1[comp2Move[3]]), int(filesToCols1[comp2Move[2]]))
+            gs.makeMove(ChessEngine.Move(startSq2, endSq2, gs.board))
+
+        drawGameState(screen, gs)
+        clock.tick(MAX_FPS)
+        p.display.flip()
     # --------------------------------------------------------------------------
 
     running = True
