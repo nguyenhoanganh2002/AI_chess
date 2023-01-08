@@ -3,11 +3,8 @@ import numpy as np
 from model import LiteModel
 from tensorflow import keras
 import time
-import random
 
-b = chess.Board('kR6/8/8/1R1p4/p2Q2P1/4P3/6q1/1N1K4 b - - 0 56')
-print(len(b.piece_map()))
-print(b)
+
 class Computer:
     values = {chess.PAWN: 1,
               chess.KNIGHT: 3,
@@ -25,11 +22,17 @@ class Computer:
         self.usemodel = usemodel
         # load model
         if usemodel:
-            self.model = keras.models.load_model('model/cp_all_elo_kangle_3.h5')
-            self.model = LiteModel.from_keras_model(self.model)
-
+            self.opening_model = keras.models.load_model('model/opening_model_2layer_384neural.h5')
+            self.opening_model = LiteModel.from_keras_model( self.opening_model)
+            self.middle_model = keras.models.load_model('model/middle_model_3layer_384neural.h5')
+            self.middle_model = LiteModel.from_keras_model(self.middle_model)
+            self.ending_model = keras.models.load_model('model/ending_model_3layer_384neural.h5')
+            self.ending_model = LiteModel.from_keras_model(self.ending_model)
     # for encoding
     def serialize(self, brd):
+
+        mark_white = 0
+        mark_black = 0
 
         pawnBoard = np.zeros(64, float)
         for i in range(64):
@@ -48,8 +51,10 @@ class Computer:
                 continue
             if pp.symbol() == 'N':
                 knightBoard[i] = 1
+                mark_white += 1
             if pp.symbol() == 'n':
                 knightBoard[i] = -1
+                mark_black += 1
 
         bishopBoard = np.zeros(64, float)
         for i in range(64):
@@ -58,8 +63,10 @@ class Computer:
                 continue
             if pp.symbol() == 'B':
                 bishopBoard[i] = 1
+                mark_white += 1
             if pp.symbol() == 'b':
                 bishopBoard[i] = -1
+                mark_black += 1
 
         rookBoard = np.zeros(64, float)
         for i in range(64):
@@ -68,8 +75,10 @@ class Computer:
                 continue
             if pp.symbol() == 'R':
                 rookBoard[i] = 1
+                mark_white += 1
             if pp.symbol() == 'r':
                 rookBoard[i] = -1
+                mark_black += 1
 
         queenBoard = np.zeros(64, float)
         for i in range(64):
@@ -78,8 +87,10 @@ class Computer:
                 continue
             if pp.symbol() == 'Q':
                 queenBoard[i] = 1
+                mark_white += 1
             if pp.symbol() == 'q':
                 queenBoard[i] = -1
+                mark_black += 1
 
         kingBoard = np.zeros(64, float)
         for i in range(64):
@@ -90,13 +101,11 @@ class Computer:
                 kingBoard[i] = 1
             if pp.symbol() == 'k':
                 kingBoard[i] = -1
-
-        return np.concatenate((pawnBoard,
-                               knightBoard,
-                               bishopBoard,
-                               rookBoard,
-                               queenBoard,
-                               kingBoard))
+        if mark_white <= 3 or mark_black <= 3:
+            state = 3
+        else:
+            state = 2
+        return np.concatenate((pawnBoard, knightBoard, bishopBoard, rookBoard, queenBoard, kingBoard)), state
 
     def valuator(self, brd): # brd : chess board
 
@@ -109,16 +118,7 @@ class Computer:
             else:
                 return 0
 
-        # heuristic 1: value per type
-        h1 = 0.0
 
-        pm = brd.piece_map()
-        for x in pm:
-            tval = self.values[pm[x].piece_type]
-            if pm[x].color == chess.WHITE:
-                h1 += tval
-            else:
-                h1 -= tval
 
         # heuristic 2: total legal moves
         h2 = 0.0
@@ -131,13 +131,38 @@ class Computer:
 
         # heuristic 3: model deep learning
         if self.usemodel:
-            bitmap = self.serialize(brd)  # encoding and predict
-            h3 = self.model.predict_single(bitmap)
-            # valuator here
-            val = h1 + self.k1 * h2 + self.k2 * h3
-        else:
-            val = h1 + self.k1 * h2
+            ser, state = self.serialize(brd)  # encoding and predict
+            if np.shape(self.memories)[0] <= 20:
+                h3 = self.opening_model.predict_single(ser)
+            else:
+                if state == 2:
+                    h3 = self.middle_model.predict_single(ser)
+                else:
+                    h3 = 0
 
+            # valuator here
+            val = self.k1 * h2 + self.k2 * h3
+        else:
+            val = self.k1 * h2
+
+        # heuristic 1: value per type
+        h1 = 0.0
+
+        pm = brd.piece_map()
+        for x in pm:
+            tval = self.values[pm[x].piece_type]
+            if pm[x].color == chess.WHITE:
+                rank = int(x / 8)
+                if rank > 3 and pm[x].piece_type == chess.PAWN and state == 3:
+                    tval += (rank - 3)*0.5
+                h1 += tval
+            else:
+                rank = int(x / 8)
+                if rank < 4 and pm[x].piece_type == chess.PAWN and state == 3:
+                    tval += (rank - 3) * 0.5
+                h1 -= tval
+
+        val += h1
         return val
 
 
@@ -178,15 +203,19 @@ class Computer:
         ret = []
         start = time.time()
         bval = self.valuator(brd)
-        cval, ret = self.anpha_beta_prunning(brd, 0, a=-self.MAXVAL, b=self.MAXVAL, flaq=True)
+        if (brd.legal_moves.count() <= 20):
+            cval, ret = self.anpha_beta_prunning(brd, -1, a=-self.MAXVAL, b=self.MAXVAL, flaq=True)
+        else:
+            cval, ret = self.anpha_beta_prunning(brd, 0, a=-self.MAXVAL, b=self.MAXVAL, flaq=True)
         eta = time.time() - start
         print("%.2f -> %.2f: explored in %.3f seconds" % (bval, cval, eta))
         return ret
 
     def getCompMove(self, brd):
+        print(f'legal move: {brd.legal_moves.count()}')
         if brd.is_game_over():
             np.save('auto_dataset.npy', np.array(self.auto_dataset))
-            print(f'Game over {brd.outcome()}')
+            print(f'Game over {brd.outcome().result()}')
             return
 
         move = sorted(self.explore_leaves(brd), key=lambda x: x[0], reverse=brd.turn)
