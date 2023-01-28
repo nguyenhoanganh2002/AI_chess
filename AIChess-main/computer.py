@@ -8,9 +8,9 @@ from const import Const
 
 class Computer:
     values = {chess.PAWN: 100,
-              chess.KNIGHT: 330,
-              chess.BISHOP: 320,
-              chess.ROOK: 510,
+              chess.KNIGHT: 300,
+              chess.BISHOP: 300,
+              chess.ROOK: 500,
               chess.QUEEN: 900,
               chess.KING: 10000}
     piece_square_table = {
@@ -101,19 +101,19 @@ class Computer:
             # queen opening
             8: [
                 -20, -10, -10, 0, 0, -10, -10, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
-                -20, -20, -20, -20, -20, -20, -20, -20,
+                -300, -300, -300, -300, -300, -300, -300, -300,
+                -300, -300, -300, -300, -300, -300, -300, -300,
+                -300, -300, -300, -300, -300, -300, -300, -300,
+                -300, -300, -300, -300, -300, -300, -300, -300,
+                -300, -300, -300, -300, -300, -300, -300, -300,
+                -300, -300, -300, -300, -300, -300, -300, -300,
                 -20, -10, -10, 0, 0, -10, -10, -20
             ]
         }
     MAXVAL = 100000
     k2 = 100
     memories = []
-    def __init__(self, MAX_DEPTH=3, k1=0.01, usemodel=False):
+    def __init__(self, MAX_DEPTH=3, k1=1, usemodel=False):
         self.k1 = k1
         self.MAX_DEPTH = MAX_DEPTH
         self.usemodel = usemodel
