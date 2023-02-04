@@ -7,6 +7,7 @@ from ai import AI
 from computer import Computer
 import time
 from button import Button
+# from comp2 import Computer_2
 
 
 
@@ -58,7 +59,8 @@ class Main:
         self.game = Game()
         self.clock = pygame.time.Clock()
         self.engine_1 = Computer(MAX_DEPTH=3, k1=1, usemodel=True)
-        self.engine_2 = AI(3)
+        self.engine_3 = AI(3)
+        # self.engine_3 = Computer_2(MAX_DEPTH=3, k1=1, usemodel=True)
         self.game_state = 0
         self.type_play = 0
         self.depth = 1
@@ -187,7 +189,7 @@ class Main:
                         try:
 
                             self.engine_1.MAX_DEPTH = self.depth
-                            board.push(self.engine_1.getCompMove(board))
+                            board.push(self.engine_1.getCompMove(board.fen()))
 
                         except:
                             print("exception line 78")
@@ -200,12 +202,13 @@ class Main:
                         pygame.display.flip()
                         try:
 
-                            # board.push(self.engine_1.getCompMove(board))
-                            print("comp2 thinking ...")
-                            board.push(self.engine_2.calculate_ab(board.fen()))
+                            print("ANN thinking ...")
+                            # board.push(self.engine_3.calculate_ab(board.fen()))
+                            # board.push(self.engine_2.getCompMove(board.fen()))
+                            board.push(self.engine_1.getCompMove(board.fen()))
 
                         except:
-                            print("exception")
+                            print("exception line 211")
                         player = False
 
                     game.show_bg(screen)
@@ -221,12 +224,12 @@ class Main:
                         pygame.display.flip()
                         try:
 
-                            print("comp1 thinking ...")
-                            board.push(self.engine_1.getCompMove(board))
-                            # board.push(self.engine_2.calculate_ab(board.fen()))
+                            print("Normal heuristics thinking ...")
+                            # board.push(self.engine_1.getCompMove(board))
+                            board.push(self.engine_3.calculate_ab(board.fen()))
 
                         except:
-                            print("exception")
+                            print("exception line 232")
                         player = True
 
                 if (dragger.draggging):
