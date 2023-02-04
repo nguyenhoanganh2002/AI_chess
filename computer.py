@@ -119,9 +119,9 @@ class Computer:
         self.usemodel = usemodel
         # load model
         if usemodel:
-            self.opening_model = keras.models.load_model('model/openning_model_3layers_512neurals_1.h5')
+            self.opening_model = keras.models.load_model('ANN_for_Chess/model/openning_model_3layers_512neurals_1.h5')
             self.opening_model = LiteModel.from_keras_model( self.opening_model)
-            self.middle_model = keras.models.load_model('model/middle_model_3layers_512neurals_1.h5')
+            self.middle_model = keras.models.load_model('ANN_for_Chess/model/middle_model_3layers_512neurals_1.h5')
             self.middle_model = LiteModel.from_keras_model(self.middle_model)
     # for encoding
     def serialize(self, brd):
